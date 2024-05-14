@@ -5,8 +5,9 @@ import { useReadContract } from 'wagmi'
 import { useWeb3ModalProvider, useWeb3ModalAccount } from '@web3modal/ethers/react'
 import { BrowserProvider, Contract, formatUnits } from 'ethers'
 import { useWriteContract } from 'wagmi'
-import { ethers } from 'ethers';
 import { parseEther } from "viem";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 const RaffleAddress = '0xA2e48f1dB93592be6E28636E2D5254F705633c61'
@@ -14,60 +15,46 @@ const RaffleAbi = [{"inputs":[{"internalType":"address","name":"vrfCordinatorV2"
 
 export default function Home() {
   const [transactionHash, setTransactionHash] = useState('');
-  // const { address, chainId, isConnected } = useWeb3ModalAccount()
-  // const { walletProvider } = useWeb3ModalProvider()
-
-  // async function getNumberPlayer() { 
-  //   console.log(address, chainId, isConnected)
-  //   const ethersProvider = new BrowserProvider(walletProvider)
-  //   const signer = await ethersProvider.getSigner()
-  //   // The Contract object
-  //   const RaffleContract = new Contract(RaffleAddress, RaffleAbi, signer)
-  //   const PlayerNumber = await RaffleContract.getNumberOfPlayer()
-
-  //   console.log(formatUnits(PlayerNumber, 18))
-  
-  // }
+  const notifySuccess = () => toast.success('Transaction successful! Raffle entry submitted.');
+  const notifyError = () => toast.error('Transaction failed!');
   const { writeContractAsync, isPending } = useWriteContract();
-  const payableAmount = 0.01; // Amount in ETH
+
 
   const handleRaffleEntryClick = async () => {
-   try {
+    try {
       const data = await writeContractAsync({
         address: RaffleAddress,
         abi: RaffleAbi,
         functionName: 'enterRaffle',
-        value: parseEther("0.01"), 
+        value: parseEther("0.01"),
         args: [],
-        });
-        setTransactionHash(data)
-        window.alert('Transaction successful! Raffle entry submitted.');
-        console.log('Transaction successful! Raffle entry submitted: hash', data)
-   } catch(err) {
+      });
+      setTransactionHash(data);
+      notifySuccess();
+      console.log('Transaction successful! Raffle entry submitted: hash', data);
+    } catch (err) {
       console.error(err);
-   } 
-}
-
-
+      notifyError();
+    }
+  };
   const result = useReadContract({
     abi: RaffleAbi,
     address: RaffleAddress,
     functionName: 'getNumberOfplayers'
   })
-  console.log(result);
 
   const winner = useReadContract({
     abi: RaffleAbi,
     address: RaffleAddress,
     functionName: 'getRecentWinner'
   })
-  console.log(winner);
 
   const { data: numberOfPlayers } = result;
   const { data: lastWinner } = winner;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+       <ToastContainer />
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
          Join Decentralized Lottery game - &nbsp;
@@ -82,9 +69,17 @@ export default function Home() {
  
 </div>
  <h1>The previous winner is {lastWinner?.toString()}</h1>
- {transactionHash && <div>Transaction Hash: {transactionHash}</div>}
-  <button class="font-bold bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded"   disabled={isPending} onClick={handleRaffleEntryClick}>Join Lottery</button>
+ {transactionHash && (
+  <div>
+    Transaction Hash: {' '}
+    <a href={`https://sepolia.etherscan.io/tx/${transactionHash}`} target="_blank" rel="noopener noreferrer" className='text-blue-500 font-bold'>
+      {transactionHash}
+    </a>
+  </div>
+)}
+  <button class="font-bold bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded" disabled={isPending} onClick={handleRaffleEntryClick}>Join Lottery</button>
  <h2>Number of participants: {numberOfPlayers?.toString()} </h2>
+
       <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
         <a
           className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
@@ -114,7 +109,7 @@ export default function Home() {
             </span>
           </h2>
           <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Click Join Lottery and Approve Transaction in your wallet.
+            Click "Join Lottery" and Approve Transaction in your wallet. <span className={`text-red-500 font-bold`}>Entrance Fee = 0.01 ETH</span>
           </p>
         </a>
 
